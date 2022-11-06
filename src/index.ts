@@ -1,3 +1,4 @@
+import osArch from "./enum/osArch";
 import osType from "./enum/osType";
 import { Asset, GitHubReleasesResponse } from "./types/GithubReleasesResponse";
 import { GitHubReleasesStats } from "./types/GitHubReleasesStats";
@@ -23,17 +24,21 @@ async function handleRequest(request: any) {
     const ua = request.headers.get("user-agent");
     const url = new URL(request.url);
     let os = url.searchParams.get("os");
+    let arch = url.searchParams.get("arch");
     if (!os) {
       os = getOS(ua).toString();
+    }
+    if(!arch){
+      arch = getArch(ua).toString();
     }
     //get latest release from github https://github.com/SPC-H-Avans/game-builds
     const response = await fetch("https://api.github.com/repos/SPC-H-Avans/game-builds/releases/latest", { headers: { "User-Agent": "SPC-H-Avans" } });
     const json = await response.json() as GitHubReleasesResponse;
     //get download url from release
-    const downloadUrl = json.assets.find((asset: Asset) => asset.name.toLowerCase().includes(os.toLowerCase()))?.browser_download_url;
+    const downloadUrl = getDownloadUrl(json, os.toLowerCase(), arch.toLowerCase());
 
     if(!downloadUrl) {
-      return new Response(`No download URL found for "${os}". Add the os url query parameter (${request.url.split('?')[0]}?os=[windows|linux]) to download a build for a specific OS`, { status: 404 });
+      return new Response(`No download URL found for "${os}" with arch "${arch}".\nAdd the OS URL query parameter "${request.url.split('?')[0]}?os=[windows|linux|macos]&arch=[x64|x86|arm|arm64]" to download a build for a specific OS.\nOr visit ${request.url.split('/download')[0]}/status to see all available builds`, { status: 404 });
     }
 
     //redirect to download url
@@ -82,3 +87,27 @@ function getOS(ua: string): osType {
   if (ua.indexOf("Linux") != -1) return osType.Linux;
   return osType.Unknown;
 }
+function getArch(ua: any): osArch {
+  if (ua.indexOf("WOW64") != -1 || ua.indexOf("Win64") != -1) return osArch.x64;
+  if (ua.indexOf("Win32") != -1) return osArch.x86;
+  if (ua.indexOf("arm64") != -1) return osArch.arm64;
+  if (ua.indexOf("arm") != -1) return osArch.arm;
+  return osArch.unknown;
+}
+
+function getDownloadUrl(json: GitHubReleasesResponse, os: string, arch: string): string | undefined {
+  let downloadUrl: string | undefined = undefined;
+  if(arch == osArch.unknown.toString()){
+    downloadUrl = json.assets.find((asset: Asset) => {
+      return asset.name.toLowerCase().includes(os);
+    })?.browser_download_url;
+  } else {
+  json.assets.forEach((asset: Asset) => {
+    if (asset.name.toLowerCase().includes(os) && asset.name.toLowerCase().includes(arch)) {
+      downloadUrl = asset.browser_download_url;
+    }
+  });
+}
+  return downloadUrl;
+}
+
