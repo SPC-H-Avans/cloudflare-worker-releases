@@ -1,0 +1,8 @@
+name = "mariogame-builds"
+main = "src/index.ts"
+compatibility_date = "2022-11-06"
+usage_model = "bundled"
+env = { }
+
+[triggers]
+crons = [ ]
