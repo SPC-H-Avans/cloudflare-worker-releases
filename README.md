@@ -4,7 +4,7 @@ This is a CloudFlare Worker that serves the built Mario Game files.
 
 ## Endpoints:
 - `/download` - Download the game
-- `/download?os=[windows|linux]` - Download the game for a specific OS
+- `/download?os=[windows|linux]?arch=[x64|arm64]` - Download the game for a specific OS and specific arch. (Both parameters are optional)
 - `/status` - Get the status of the latest release
 
 
